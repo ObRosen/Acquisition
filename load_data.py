@@ -6,6 +6,22 @@ import random
 import numpy as np
 from typing import List, Tuple
 from deduplicate import rotate1, rotate2, rotate3, symmetry, symrot1, symrot2, symrot3
+from gamemap import ReversiMap
+from player_color import BLACK, WHITE, EMPTY
+
+
+# 将读出来的str类型转换为List[List[float]]类型，避开NaN部分
+def data_preprocess(data: pd.DataFrame):
+    na = np.where(data.isna())
+    for i in range(len(data)):
+        lst = [k for k in range(len(data.iloc[i, :]))]
+        if i in set(na[0]):
+            idx = [h for h, x in enumerate(na[0]) if x == i]
+            for j in idx:
+                lst.remove(na[1][j])
+        for w in lst:
+            data.iloc[i, w] = convert_cell(data.iloc[i, w])
+    return data
 
 
 def dedup(data):  # dedup要对trainset用而不是对原始的data数据集用
@@ -14,7 +30,6 @@ def dedup(data):  # dedup要对trainset用而不是对原始的data数据集用
 
     for i in range(len(data)):
         record = data.iloc[i, :]
-        # 从棋谱转换成棋盘，EMPTY=0，WHITE=1，BLACK=2
         record_map = []
         for row in record:
             for item in row:
@@ -39,21 +54,33 @@ def dedup(data):  # dedup要对trainset用而不是对原始的data数据集用
     return deduplicated_records
 
 
-# 将读出来的str类型转换为List[List[float]]类型，避开NaN部分
-def data_preprocess(data: pd.DataFrame):
-    na = np.where(data.isna())
+def splitBoard(board: List[List[float]], current_color) -> List[List[List[float]]]:
+    own: List[List[float]] = [[0. for _ in range(8)] for _ in range(8)]
+    rival: List[List[float]] = [[0. for _ in range(8)] for _ in range(8)]
+    for i in range(8):
+        for j in range(8):
+            col = board[i][j]
+            if col == current_color:
+                own[i][j] = 1.
+            elif col == EMPTY:
+                continue
+            else:
+                rival[i][j] = 1.
+    return [own, rival]
+
+
+def into_input_format(data: pd.DataFrame):
+    new_data = data.iloc[:, :2]
     for i in range(len(data)):
-        lst = [k for k in range(len(data.iloc[i, :]))]
-        if i in set(na[0]):
-            idx = [h for h, x in enumerate(na[0]) if x == i]
-            for j in idx:
-                lst.remove(na[1][j])
-        for w in lst:
-            data.iloc[i, w] = convert_cell(data.iloc[i, w])
-    return data
+        a = splitBoard(data.iloc[i, :], BLACK)
+        new_data.iloc[i, 0] = a[0]
+        new_data.iloc[i, 1] = a[1]
+    # print(new_data.iloc[0,0])
+    return new_data
 
 
 def data_loader(data: pd.DataFrame, random_seed: int = 10):
+    data = data_preprocess(data)
     trainset = []
     valset = []
     testset = []  # 其实test可以随便取，不重复最好，一个棋谱中就可以取多条数据，不影响效果
@@ -91,11 +118,11 @@ def data_loader(data: pd.DataFrame, random_seed: int = 10):
         valindexset.append(val_index)
         testindexset.append(test_index)
 
-    trainset = dedup(pd.DataFrame(trainset))
-    valset = dedup(pd.DataFrame(valset))
-    testset = dedup(pd.DataFrame(testset))
+    trainset = into_input_format(pd.DataFrame(dedup(pd.DataFrame(trainset))))
+    valset = into_input_format(pd.DataFrame(dedup(pd.DataFrame(valset))))
+    testset = into_input_format(pd.DataFrame(dedup(pd.DataFrame(testset))))
 
-    return pd.DataFrame(trainset), pd.DataFrame(valset), pd.DataFrame(testset)
+    return trainset, valset, testset
 
 
 def convert_cell(cell: str):
@@ -109,9 +136,5 @@ def convert_cell(cell: str):
 
 if __name__ == '__main__':
     data = pd.read_csv('./Acquisition/allgamedata_small.csv', encoding='utf-8')
-    data = data_preprocess(data)
-
     trainset, valset, testset = data_loader(data, 15)
-    # 感觉valset是不需要的，可以在trainset中进行交叉验证
-    # print(trainset.iloc[0, :])
-    # print(trainset.iloc[2,0])
+    # print(trainset) # (dataSize,2,8,8)

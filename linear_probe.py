@@ -42,7 +42,7 @@ def loss_fn(pred, target, w, lamb):
     mse_loss = torch.mean((pred - target)**2)
     l1_loss = torch.sum(torch.abs(w))
     total_loss = mse_loss + lamb * l1_loss
-    return total_loss
+    return torch.Tensor(total_loss)
 
 
 # 定义训练函数
@@ -140,13 +140,25 @@ def test_accuracy(concept_name: str, model: LinearModel, test_data: pd.DataFrame
 
 
 if __name__ == '__main__':
-    # TODO:数据准备,需要从load_data中获取神经网络的输出
+    concept_list = [mobility, mobility_diff, frontier, frontier_diff, steady,
+                    corner, corner_steady, steady_diff, corner_diff, score_f1, score]
+    training_steps = []
+    layers = []
+    data = pd.read_csv('./Acquisition/allgamedata_small.csv', encoding='utf-8')
+    trainset, valset, testset = data_loader(data, 15)
     train_z_d = []
     test_z_d = []
     BLACK = -1
-    # 在测试集上测试
-    data = pd.read_csv('./Acquisition/allgamedata_small.csv', encoding='utf-8')
-    trainset, valset, testset = data_loader(data, 15)
-    linear_model = concept_probe(mobility_diff, trainset, train_z_d)
-    accuracy = test_accuracy(mobility_diff, linear_model, testset, test_z_d)
-    # TODO:输入三个list供draw_plot.py使用
+    """
+    for ver in training_steps:
+        for layer in layers:
+            # TODO:数据准备,需要从load_data中获取神经网络的输出
+            train_z_d = []
+            test_z_d = []
+            BLACK = -1
+
+            for concept in concept_list:
+                linear_model = concept_probe(concept, trainset, train_z_d)
+                accuracy = test_accuracy(concept, linear_model, testset, test_z_d)
+                # TODO:对每个概念，输入三个list供draw_plot.py使用
+    """
