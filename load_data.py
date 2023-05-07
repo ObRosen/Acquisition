@@ -24,7 +24,7 @@ def data_preprocess(data: pd.DataFrame):
     return data
 
 
-def dedup(data):  # dedup要对trainset用而不是对原始的data数据集用
+def dedup_train(data: pd.DataFrame):  # dedup要对trainset用而不是对原始的data数据集用
     memoryset = set()
     deduplicated_records = []
 
@@ -51,7 +51,38 @@ def dedup(data):  # dedup要对trainset用而不是对原始的data数据集用
         memoryset.add(symrot1(record_map_str))
         memoryset.add(symrot2(record_map_str))
         memoryset.add(symrot3(record_map_str))
-    return deduplicated_records
+    return pd.DataFrame(deduplicated_records), memoryset
+
+
+# 除了自身的重复，testset还要排除与trainset重合的部分
+def dedup_test(testdata: pd.DataFrame, train_memoryset: set) -> pd.DataFrame:
+    memoryset = train_memoryset
+    deduplicated_records = []
+
+    for i in range(len(testdata)):
+        record = testdata.iloc[i, :]
+        record_map = []
+        for row in record:
+            for item in row:
+                if item == -1:
+                    item = 2
+                record_map.append(item)
+
+        record_map_str = ''.join(
+            map(str, record_map))  # 转换成字符串用于对称旋转变换
+
+        if record_map_str in memoryset:  # 判断是否重复
+            continue
+        deduplicated_records.append(record)
+        memoryset.add(record_map_str)
+        memoryset.add(rotate1(record_map_str))
+        memoryset.add(rotate2(record_map_str))
+        memoryset.add(rotate3(record_map_str))
+        memoryset.add(symmetry(record_map_str))
+        memoryset.add(symrot1(record_map_str))
+        memoryset.add(symrot2(record_map_str))
+        memoryset.add(symrot3(record_map_str))
+        return pd.DataFrame(deduplicated_records)
 
 
 def splitBoard(board: List[List[float]], current_color) -> List[List[List[float]]]:
@@ -82,10 +113,10 @@ def into_input_format(data: pd.DataFrame):
 def data_loader(data: pd.DataFrame, random_seed: int = 10):
     data = data_preprocess(data)
     trainset = []
-    valset = []
+    # valset = []
     testset = []  # 其实test可以随便取，不重复最好，一个棋谱中就可以取多条数据，不影响效果
     trainindexset = []
-    valindexset = []
+    # valindexset = []
     testindexset = []
 
     na = np.where(data.isna())  # 二维
@@ -102,8 +133,8 @@ def data_loader(data: pd.DataFrame, random_seed: int = 10):
         random.seed(random_seed * len(data) + i)  # 确保随机但又能根据种子找回
         train_index = random.choice(lst)
         lst.remove(train_index)
-        val_index = random.choice(lst)
-        lst.remove(val_index)
+        # val_index = random.choice(lst)
+        # lst.remove(val_index)
         test_index = random.choice(lst)
 
         # data.iloc[i, train_index] = convert_cell(data.iloc[i, train_index])
@@ -111,18 +142,19 @@ def data_loader(data: pd.DataFrame, random_seed: int = 10):
         # data.iloc[i, test_index] = convert_cell(data.iloc[i, test_index])
 
         trainset.append(data.iloc[i, train_index])
-        valset.append(data.iloc[i, val_index])
+        # valset.append(data.iloc[i, val_index])
         testset.append(data.iloc[i, test_index])
 
         trainindexset.append(train_index)
-        valindexset.append(val_index)
+        # valindexset.append(val_index)
         testindexset.append(test_index)
 
-    trainset = into_input_format(pd.DataFrame(dedup(pd.DataFrame(trainset))))
-    valset = into_input_format(pd.DataFrame(dedup(pd.DataFrame(valset))))
-    testset = into_input_format(pd.DataFrame(dedup(pd.DataFrame(testset))))
+    a, b = dedup_train(pd.DataFrame(trainset))
+    trainset = into_input_format(a)
+    # valset = into_input_format(dedup(pd.DataFrame(valset)))
+    testset = into_input_format(dedup_test(pd.DataFrame(testset), b))
 
-    return trainset, valset, testset
+    return trainset, testset
 
 
 def convert_cell(cell: str):
@@ -136,5 +168,5 @@ def convert_cell(cell: str):
 
 if __name__ == '__main__':
     data = pd.read_csv('./Acquisition/allgamedata_small.csv', encoding='utf-8')
-    trainset, valset, testset = data_loader(data, 15)
+    trainset, testset = data_loader(data, 15)
     # print(trainset) # (dataSize,2,8,8)
