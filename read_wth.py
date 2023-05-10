@@ -148,11 +148,11 @@ def read_wthor_files(files):
         f'Total number of the othello games in the dataset: {game_total_num}')
 
     trset, trmemory = dedup(pd.DataFrame(trainset), set())
-    trainset_2 = into_input_format_2(trset)
+    #trainset_2 = into_input_format_2(trset)
     teset, _ = dedup(pd.DataFrame(testset), trmemory)
-    testset_2 = into_input_format_2(teset)
-
-    return trainset_2, testset_2
+    #testset_2 = into_input_format_2(teset)
+    return trset,teset
+    #return trainset_2, testset_2
 
 
 if __name__ == "__main__":

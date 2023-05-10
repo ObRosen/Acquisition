@@ -12,13 +12,13 @@ from read_wth import read_wthor_files
 from device_detect import detectDevice
 
 
-def df_to_tensor(data: pd.DataFrame):
+def df_to_tensor(data: pd.DataFrame, device):
     dataSize = len(data)
     datalist = []
     for i in range(dataSize):
         datalist.append(data.iloc[i, 0])
         datalist.append(data.iloc[i, 1])
-    datalist = torch.tensor(datalist, device=globalDevice)
+    datalist = torch.tensor(datalist, device=device)
     data = datalist.reshape((dataSize, 2, 8, 8))
     return data
 
@@ -27,7 +27,7 @@ def loadNetOutput(training_step: int, data: pd.DataFrame, device):
     with open(f"./models/preNet_{training_step}00.pt", 'rb') as f:
         model: "ResNet" = torch.load(f, map_location=device)
     layer_out_list = []  # 储存一代神经网络中15个残差块的输出
-    layer_out = model.initConv(df_to_tensor(data))
+    layer_out = model.initConv(df_to_tensor(data,device))
     for layer in model.layers:
         layer_out = layer(layer_out)
         layer_out_list.append(layer_out)

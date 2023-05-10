@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+# 画图可以参考这个：https://blog.csdn.net/AnimateX/article/details/122016419
+
 # TODO: 从csv中读取数据，包括block、epoch和test accuracy等信息，存储在对应的列表中
 block_list = [0,5,10]
 epoch_list = [10,20,30]
