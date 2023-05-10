@@ -155,6 +155,5 @@ def convert_cell(cell: str):
 if __name__ == '__main__':
     data = pd.read_csv('./allgamedata_small.csv', encoding='utf-8') #如果启用csv,则data_loader中第一行要用data = data_preprocess(data)
     print(data)
-
     trainset, testset = data_loader(data, 15)
     print(trainset)

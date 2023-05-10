@@ -12,8 +12,9 @@ from gamemap import ReversiMap, Grid
 from move_result import MoveResult
 from typing import List
 import pandas as pd
-from load_data import data_loader
+from load_data import into_input_format_2, dedup
 import time
+import random
 
 
 def parse_arg():
@@ -90,7 +91,7 @@ def getBoardState(map: ReversiMap) -> List[List[int]]:
     # return torch.FloatTensor([[_gridToState(grid) for grid in row] for row in map])
 
 
-def show_map_state(record):
+def show_map_state(record, random_seed: int):
     boardstates = []
 
     map = ReversiMap()
@@ -117,43 +118,51 @@ def show_map_state(record):
         map.gameMove(MoveResult(x, y, color))
         boardstates.append(getBoardState(map))
 
-    return boardstates  # 输入一个棋局的record，将产生60条8x8的boardstates
+    train_record, test_record = sampleFromSource(boardstates, random_seed)
+    return train_record, test_record  # 从产生的60条8x8的boardstates中挑出这一局里采样的一个训练数据和一个测试数据
+
+
+def sampleFromSource(data: List[List[List[int]]], random_seed: int):
+    lst = [k for k in range(len(data))]
+    random.seed(len(data)*random_seed)
+    train_index = random.choice(lst)
+    lst.remove(train_index)
+    test_index = random.choice(lst)
+    train_record = data[train_index]
+    test_record = data[test_index]
+    return train_record, test_record
 
 
 def read_wthor_files(files):
-    dataset = []
+    trainset = []
+    testset = []
     game_total_num = 0
     for file in files:
         (header, games) = read_wthor_file(file)
-        # print("year:{}, num_of_games:{}".format(header["game_year"], header["num_games"]))
         game_total_num += len(games)
         for idx, game in enumerate(games):
-            # print("game #:{}".format(idx))
-            # show_play_record(game["play"])
-            dataset.append(show_map_state(game["play"]))
-    print(game_total_num)
-    return pd.DataFrame(dataset)
+            a, b = show_map_state(game["play"], idx)
+            trainset.append(a)
+            testset.append(b)
+    print(
+        f'Total number of the othello games in the dataset: {game_total_num}')
+
+    trset, trmemory = dedup(pd.DataFrame(trainset), set())
+    trainset_2 = into_input_format_2(trset)
+    teset, _ = dedup(pd.DataFrame(testset), trmemory)
+    testset_2 = into_input_format_2(teset)
+
+    return trainset_2, testset_2
 
 
 if __name__ == "__main__":
     paths = ['.\gamedata\WTH_' +
              str(i)+'.wtb' for i in range(1977, 2000)]  # range(1977,2024)
-    start=time.time()
-    dataset = read_wthor_files(paths)
-    middle=time.time()
-    print(middle-start)
-    # print(dataset)
-    # dataset.to_csv('.\\allgamedata_small.csv', encoding='utf-8', index=False)
-    # 最好换种方法，这样产生的数据集有2.37G……（完整数据共有1.1*10^5条,update:现在不止了）
+    start = time.time()
+    trainset, testset = read_wthor_files(paths)
+    middle = time.time()
+    # print(middle-start)  # (1977, 2000) 全过程222s
+    # print(trainset.shape)
+    # print(trainset.iloc[:5, :])
 
-    trainset,testset=data_loader(dataset) # 直接用data_loader处理数据，不再向csv输出了
-    end=time.time()
-    print(trainset.shape)
     
-    print(end-middle)
-
-""" 
-从以上代码中我们读取的是整局棋的棋谱，要将棋谱整理成棋盘局面(已完成)，
-再从每一局棋中随机抽取一个棋盘状态，去重后构成训练集。
-再同样独立抽取验证机和测试集（保证这三个集合相互之间没有重合）
-"""
