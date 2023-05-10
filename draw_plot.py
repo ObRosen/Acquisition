@@ -1,33 +1,45 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+import numpy as np
 
-# 画图可以参考这个：https://blog.csdn.net/AnimateX/article/details/122016419
+# 画图可以参考这个：
+# https://blog.csdn.net/AnimateX/article/details/122016419
+# https://blog.csdn.net/u013185349/article/details/122618862
 
-# TODO: 从csv中读取数据，包括block、epoch和test accuracy等信息，存储在对应的列表中
-block_list = [0,5,10]
-epoch_list = [10,20,30]
-acc_list = [1,2,3]
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+def draw_3d(concept_name: str, acc_list):
 
-# 绘制散点图
-ax.plot(block_list, epoch_list, acc_list)
+    mpl.rcParams['legend.fontsize'] = 10
 
-# 设置坐标轴的标签
-ax.set_xlabel('Block')
-ax.set_ylabel('Epoch')
-ax.set_zlabel('Test Accuracy')
-ax.set_title('Concept')
+    fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    ax = Axes3D(fig)
 
-# 设置坐标轴的取值范围
-ax.set_xlim([0, 15])
-ax.set_ylim([0, 30])
-ax.set_zlim([0.0, 10.0])
+    # 绘制散点图
+    layer_list = np.arange(0, 15)
+    epoch_list = np.arange(1, 58)
+    w, b = np.meshgrid(layer_list, epoch_list)
+    # 确认一下acc_list的x,y维度对不对，只要打印出size看一下就可以了
+    ax.plot_surface(w, b, acc_list, cmap=cm.coolwarm)
 
-plt.show()
-# 保存图片
-#plt.savefig('path/to/save/image.png')
+    # ax.plot(layer_list, epoch_list, acc_list)
+
+    # 设置坐标轴的标签
+    ax.set_xlabel('Block')
+    ax.set_ylabel('Epoch')
+    ax.set_zlabel('Test Accuracy')
+
+    ax.set_title(f'Concept:{concept_name}')
+
+    # 设置坐标轴的取值范围
+    ax.set_xlim([0, 15])
+    ax.set_ylim([0, 60])
+    ax.set_zlim([-10.0, 1.0])
+
+    # 保存图片
+    plt.savefig(f'./plots/{concept_name}.png')
 
 
 """
