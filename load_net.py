@@ -8,6 +8,7 @@ from gamemap import ReversiMap
 from typing import TYPE_CHECKING, List, Tuple
 import numpy as np
 from reversi_config import ReversiCheckPointConfig, ReversiGeneralConfig
+from read_wth import read_wthor_files
 
 
 def detectDevice() -> torch.device:
@@ -40,22 +41,24 @@ def df_to_tensor(data: pd.DataFrame):
     data = datalist.reshape((dataSize, 2, 8, 8))
     return data
 
+if __name__=='__main__':
+    globalDevice = detectDevice()
 
-globalDevice = detectDevice()
+    with open(f"./models/preNet_100.pt", 'rb') as f:
+        model: "ResNet" = torch.load(f, map_location=globalDevice)
+    
+    paths = ['.\gamedata\WTH_' +
+             str(i)+'.wtb' for i in range(1977, 1981)]  # range(1977,2024)
+    dataset = read_wthor_files(paths)
+    trainset, testset = data_loader(dataset, 15)
+    # batchStateInput: List[List[List[List[float]]]], size: (dataSize, 2, 8, 8)
+    
+    layer_out_list = [] # 储存一代神经网络中15个残差块的输出
+    layer_out = model.initConv(df_to_tensor(trainset))
+    for layer in model.layers:
+        layer_out=layer(layer_out)
+        layer_out_list.append(layer_out)
 
-with open(f".\Acquisition\models\save_100.pt", 'rb') as f:
-    model: "ResNet" = torch.load(f, map_location=globalDevice)
+    
+    
 
-
-data = pd.read_csv('./Acquisition/allgamedata_small.csv', encoding='utf-8')
-trainset, valset, testset = data_loader(data, 15)
-# batchStateInput: List[List[List[List[float]]]], size: (dataSize, 2, 8, 8)
-
-
-layer_out_list = []
-layer_out = df_to_tensor(trainset)
-print(layer_out.shape)
-configs = ReversiGeneralConfig("config.ini")
-resnet = model(configs.ResNetParam).to(globalDevice)
-p, v = resnet(layer_out)
-print(p, v)

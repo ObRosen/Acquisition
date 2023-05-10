@@ -101,14 +101,9 @@ class ResNet(nn.Module):
             self.layers.append(block(channels, channels))
 
     def forward(self, x: Tensor) -> Tuple[Tensor, Tensor]:
-        # print(x)
         out = self.initConv(x)
-        # print('1 out: {}'.format(out))
-        # print('1 out shape: {}'.format(out.shape))
         for layer in self.layers:
             out = layer(out)
-            # print('2 out: {}'.format(out))
-            # print('2 out shape: {}'.format(out.shape))
         p: Tensor = self.pConv(out)
         p = p.view(p.size(0), -1)
         p = self.fc_p(p)

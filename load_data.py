@@ -24,8 +24,8 @@ def data_preprocess(data: pd.DataFrame):
     return data
 
 
-def dedup_train(data: pd.DataFrame):  # dedup要对trainset用而不是对原始的data数据集用
-    memoryset = set()
+def dedup(data: pd.DataFrame, memory_set: set = set()):  # dedup要对trainset用而不是对原始的data数据集用
+    memoryset = memory_set
     deduplicated_records = []
 
     for i in range(len(data)):
@@ -54,37 +54,6 @@ def dedup_train(data: pd.DataFrame):  # dedup要对trainset用而不是对原始
     return pd.DataFrame(deduplicated_records), memoryset
 
 
-# 除了自身的重复，testset还要排除与trainset重合的部分
-def dedup_test(testdata: pd.DataFrame, train_memoryset: set) -> pd.DataFrame:
-    memoryset = train_memoryset
-    deduplicated_records = []
-
-    for i in range(len(testdata)):
-        record = testdata.iloc[i, :]
-        record_map = []
-        for row in record:
-            for item in row:
-                if item == -1:
-                    item = 2
-                record_map.append(item)
-
-        record_map_str = ''.join(
-            map(str, record_map))  # 转换成字符串用于对称旋转变换
-
-        if record_map_str in memoryset:  # 判断是否重复
-            continue
-        deduplicated_records.append(record)
-        memoryset.add(record_map_str)
-        memoryset.add(rotate1(record_map_str))
-        memoryset.add(rotate2(record_map_str))
-        memoryset.add(rotate3(record_map_str))
-        memoryset.add(symmetry(record_map_str))
-        memoryset.add(symrot1(record_map_str))
-        memoryset.add(symrot2(record_map_str))
-        memoryset.add(symrot3(record_map_str))
-        return pd.DataFrame(deduplicated_records)
-
-
 def splitBoard(board: List[List[float]], current_color) -> List[List[List[float]]]:
     own: List[List[float]] = [[0. for _ in range(8)] for _ in range(8)]
     rival: List[List[float]] = [[0. for _ in range(8)] for _ in range(8)]
@@ -100,8 +69,18 @@ def splitBoard(board: List[List[float]], current_color) -> List[List[List[float]
     return [own, rival]
 
 
-def into_input_format(data: pd.DataFrame):
-    new_data = data.iloc[:, :2]
+def into_input_format_1(data: pd.DataFrame):
+    new_data = data.iloc[:, 0].copy(deep=True)
+    for i in range(len(data)):
+        # new_data[i] = [data.iloc[i, j] for j in range(len(data.iloc[i, :]))]
+        new_data[i] = [data.iloc[i,:]]
+    # print(new_data[0][0])
+    # print(pd.DataFrame(new_data))
+    return pd.DataFrame(new_data)
+
+
+def into_input_format_2(data: pd.DataFrame):
+    new_data = data.iloc[:, :2].copy(deep=True)
     for i in range(len(data)):
         a = splitBoard(data.iloc[i, :], BLACK)
         new_data.iloc[i, 0] = a[0]
@@ -111,7 +90,7 @@ def into_input_format(data: pd.DataFrame):
 
 
 def data_loader(data: pd.DataFrame, random_seed: int = 10):
-    data = data_preprocess(data)
+    # data = data_preprocess(data)
     trainset = []
     # valset = []
     testset = []  # 其实test可以随便取，不重复最好，一个棋谱中就可以取多条数据，不影响效果
@@ -149,12 +128,19 @@ def data_loader(data: pd.DataFrame, random_seed: int = 10):
         # valindexset.append(val_index)
         testindexset.append(test_index)
 
-    a, b = dedup_train(pd.DataFrame(trainset))
-    trainset = into_input_format(a)
-    # valset = into_input_format(dedup(pd.DataFrame(valset)))
-    testset = into_input_format(dedup_test(pd.DataFrame(testset), b))
+    trset, trmemory = dedup(pd.DataFrame(trainset),
+                            set())  # trset:(dataSize,8,8)
+    trainset_2 = into_input_format_2(trset)  # trainset_2:(dataSize,2,8,8)
+    trainset_1 = into_input_format_1(trset)  # trainset_1:(dataSize,1,8,8)
 
-    return trainset, testset
+    # valset = into_input_format(dedup(pd.DataFrame(valset)))
+    teset, tememory = dedup(pd.DataFrame(testset), trmemory)
+    testset_2 = into_input_format_2(teset)
+    testset_1 = into_input_format_1(teset)
+
+    # return trainset_1, testset_1
+    # return trset, teset
+    return trainset_2, testset_2
 
 
 def convert_cell(cell: str):
@@ -167,6 +153,8 @@ def convert_cell(cell: str):
 
 
 if __name__ == '__main__':
-    data = pd.read_csv('./Acquisition/allgamedata_small.csv', encoding='utf-8')
+    data = pd.read_csv('./allgamedata_small.csv', encoding='utf-8') #如果启用csv,则data_loader中第一行要用data = data_preprocess(data)
+    print(data)
+
     trainset, testset = data_loader(data, 15)
-    # print(trainset) # (dataSize,2,8,8)
+    print(trainset)

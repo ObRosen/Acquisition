@@ -12,6 +12,8 @@ from gamemap import ReversiMap, Grid
 from move_result import MoveResult
 from typing import List
 import pandas as pd
+from load_data import data_loader
+import time
 
 
 def parse_arg():
@@ -134,15 +136,23 @@ def read_wthor_files(files):
 
 
 if __name__ == "__main__":
-    paths = ['.\Acquisition\gamedata\WTH_' +
-             str(i)+'.wtb' for i in range(1977, 1979)]
-    # args = parse_arg()
+    paths = ['.\gamedata\WTH_' +
+             str(i)+'.wtb' for i in range(1977, 2000)]  # range(1977,2024)
+    start=time.time()
     dataset = read_wthor_files(paths)
-    dataset.to_csv('.\\Acquisition\\allgamedata_small.csv',
-                   encoding='utf-8', index=False)
-    # 最好换种方法，这样产生的数据集有2.37G……（完整数据共有1.1*10^5条）
+    middle=time.time()
+    print(middle-start)
+    # print(dataset)
+    # dataset.to_csv('.\\allgamedata_small.csv', encoding='utf-8', index=False)
+    # 最好换种方法，这样产生的数据集有2.37G……（完整数据共有1.1*10^5条,update:现在不止了）
 
-"""
+    trainset,testset=data_loader(dataset) # 直接用data_loader处理数据，不再向csv输出了
+    end=time.time()
+    print(trainset.shape)
+    
+    print(end-middle)
+
+""" 
 从以上代码中我们读取的是整局棋的棋谱，要将棋谱整理成棋盘局面(已完成)，
 再从每一局棋中随机抽取一个棋盘状态，去重后构成训练集。
 再同样独立抽取验证机和测试集（保证这三个集合相互之间没有重合）
