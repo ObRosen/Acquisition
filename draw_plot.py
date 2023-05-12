@@ -42,12 +42,3 @@ def draw_3d(concept_name: str, acc_list):
     plt.savefig(f'./plots/{concept_name}.png')
 
 
-"""
-在上述代码中，首先要准备好数据，包括block、epoch和test accuracy等信息，
-分别存储在对应的列表中。然后创建一个figure对象和一个Axes3D对象，用来绘制
-三维图像。使用scatter()方法绘制散点图，其中block_list、epoch_list和
-acc_list分别表示x轴、y轴和z轴上的取值。接着使用set_xlabel()、set_ylabel()
-和set_zlabel()方法设置坐标轴的标签，使用set_xlim()、set_ylim()和set_zlim()
-方法设置坐标轴的取值范围。最后使用savefig()方法将生成的图片保存在指定的文
-件路径中。
-"""

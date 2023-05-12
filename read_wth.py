@@ -156,8 +156,8 @@ def read_wthor_files(files):
 
 
 if __name__ == "__main__":
-    paths = ['.\gamedata\WTH_' +
-             str(i)+'.wtb' for i in range(1977, 2000)]  # range(1977,2024)
+    paths = ['./gamedata/WTH_' +
+             str(i)+'.wtb' for i in range(1977, 1981)]  # range(1977,2024)
     start = time.time()
     trainset, testset = read_wthor_files(paths)
     middle = time.time()

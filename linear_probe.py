@@ -177,7 +177,7 @@ if __name__ == '__main__':
     globalDevice = detectDevice()
     BLACK = -1
 
-    file_list = range(1977, 1980)  # range(1977,2024)
+    file_list = range(1977, 1981)  # range(1977,2024)
     epoch_list = range(1, 2)  # range(1,58)
     concept_list = [mobility]
 

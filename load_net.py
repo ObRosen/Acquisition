@@ -37,7 +37,7 @@ def loadNetOutput(training_step: int, data: pd.DataFrame, device):
 if __name__ == '__main__':
     globalDevice = detectDevice()
 
-    paths = ['.\gamedata\WTH_' + str(i)+'.wtb' for i in range(1977, 1981)]
+    paths = ['./gamedata/WTH_' + str(i)+'.wtb' for i in range(1977, 1981)]
     trainset, testset = read_wthor_files(paths)
 
     for training_step in range(1, 58):

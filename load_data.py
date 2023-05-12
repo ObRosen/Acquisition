@@ -8,6 +8,7 @@ from typing import List, Tuple
 from deduplicate import rotate1, rotate2, rotate3, symmetry, symrot1, symrot2, symrot3
 from gamemap import ReversiMap
 from player_color import BLACK, WHITE, EMPTY
+import torch
 
 
 # 将读出来的str类型转换为List[List[float]]类型，避开NaN部分
@@ -73,7 +74,7 @@ def into_input_format_1(data: pd.DataFrame):
     new_data = data.iloc[:, 0].copy(deep=True)
     for i in range(len(data)):
         # new_data[i] = [data.iloc[i, j] for j in range(len(data.iloc[i, :]))]
-        new_data[i] = [data.iloc[i,:]]
+        new_data[i] = [data.iloc[i, :]]
     # print(new_data[0][0])
     # print(pd.DataFrame(new_data))
     return pd.DataFrame(new_data)
@@ -92,17 +93,13 @@ def into_input_format_2(data: pd.DataFrame):
 def data_loader(data: pd.DataFrame, random_seed: int = 10):
     # data = data_preprocess(data)
     trainset = []
-    # valset = []
     testset = []  # 其实test可以随便取，不重复最好，一个棋谱中就可以取多条数据，不影响效果
     trainindexset = []
-    # valindexset = []
     testindexset = []
 
     na = np.where(data.isna())  # 二维
 
     for i in range(len(data)):
-
-        # 这个过程有点冗余了，但暂时还没想到什么方法改进
         lst = [k for k in range(len(data.iloc[i, :]))]
         if i in set(na[0]):
             idx = [h for h, x in enumerate(na[0]) if x == i]
@@ -112,20 +109,11 @@ def data_loader(data: pd.DataFrame, random_seed: int = 10):
         random.seed(random_seed * len(data) + i)  # 确保随机但又能根据种子找回
         train_index = random.choice(lst)
         lst.remove(train_index)
-        # val_index = random.choice(lst)
-        # lst.remove(val_index)
         test_index = random.choice(lst)
-
-        # data.iloc[i, train_index] = convert_cell(data.iloc[i, train_index])
-        # data.iloc[i, val_index] = convert_cell(data.iloc[i, val_index])
-        # data.iloc[i, test_index] = convert_cell(data.iloc[i, test_index])
-
         trainset.append(data.iloc[i, train_index])
-        # valset.append(data.iloc[i, val_index])
         testset.append(data.iloc[i, test_index])
 
         trainindexset.append(train_index)
-        # valindexset.append(val_index)
         testindexset.append(test_index)
 
     trset, trmemory = dedup(pd.DataFrame(trainset),
@@ -133,13 +121,9 @@ def data_loader(data: pd.DataFrame, random_seed: int = 10):
     trainset_2 = into_input_format_2(trset)  # trainset_2:(dataSize,2,8,8)
     trainset_1 = into_input_format_1(trset)  # trainset_1:(dataSize,1,8,8)
 
-    # valset = into_input_format(dedup(pd.DataFrame(valset)))
     teset, tememory = dedup(pd.DataFrame(testset), trmemory)
     testset_2 = into_input_format_2(teset)
     testset_1 = into_input_format_1(teset)
-
-    # return trainset_1, testset_1
-    # return trset, teset
     return trainset_2, testset_2
 
 
@@ -152,8 +136,21 @@ def convert_cell(cell: str):
     return cell
 
 
+def load_tensor(data: torch.Tensor, batchSize: int = 128):
+    dataset = []
+    nums = list(range(data.shape[0]))
+    random.seed(10)
+    random.shuffle(nums)
+    indiceSet = [nums[i:i+batchSize]
+                 for i in range(0, data.shape[0], batchSize)]
+    for indice in indiceSet:
+        dataset.append(data[indice])
+    return dataset
+
+
 if __name__ == '__main__':
-    data = pd.read_csv('./allgamedata_small.csv', encoding='utf-8') #如果启用csv,则data_loader中第一行要用data = data_preprocess(data)
+    # 如果启用csv,则data_loader中第一行要用data = data_preprocess(data)
+    data = pd.read_csv('./allgamedata_small.csv', encoding='utf-8')
     print(data)
     trainset, testset = data_loader(data, 15)
     print(trainset)
