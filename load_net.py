@@ -26,21 +26,22 @@ def df_to_tensor(data: pd.DataFrame, device):
 def loadNetOutput(training_step: int, data: List[pd.DataFrame], device):
     with open(f"./models/preNet_{training_step}00.pt", 'rb') as f:
         model: "ResNet" = torch.load(f, map_location=device)
-    datalist=load_dataframe(data)
-    batch_list=[]
+    datalist = load_dataframe(data, 64)
+    batch_list = []
     for data in datalist:
         layer_out_list = []  # 储存一代神经网络中15个残差块的输出
-        layer_out = model.initConv(df_to_tensor(data,device))
+        layer_out = model.initConv(df_to_tensor(data, device))
         for layer in model.layers:
             layer_out = layer(layer_out)
             layer_out_list.append(layer_out)
         batch_list.append(layer_out_list)
-    trans_list=[[batch_list[k][i] for k in range(len(batch_list))] for i in range(len(model.layers))]
-    result=[]
+    trans_list = [[batch_list[k][i] for k in range(
+        len(batch_list))] for i in range(len(model.layers))]
+    result = []
     for lst in trans_list:
-        new_lst=[]
-        for ls in lst:
-            new_lst.extend(ls)
+        new_lst = lst[0]
+        for ls in lst[1:]:
+            new_lst = torch.cat([new_lst, ls], dim=0)
         result.append(new_lst)
     return result
 

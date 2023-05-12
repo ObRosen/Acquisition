@@ -17,7 +17,8 @@ import warnings
 warnings.filterwarnings("ignore")  # 忽略UserWarning兼容性警告
 
 
-batchSize=128
+batchSize = 128
+
 
 class LinearModel(nn.Module):  # 定义线性模型g,用于c-con
     def __init__(self, input_size):
@@ -41,8 +42,9 @@ def batch_normalize(x, gamma=0.5, beta=0.5, eps=1e-5):
 
 def loss_f1(pred: torch.Tensor, target: torch.Tensor, w, lamb, device: torch.device) -> torch.Tensor:
     mse_loss = torch.mean((pred - target)**2)
-    l1_loss = torch.sum(torch.abs(w))/pred.size(0) # l2_loss = torch.norm(w)/pred.size(0)
-    return mse_loss + lamb * l1_loss # 返回的是平均loss
+    # l2_loss = torch.norm(w)/pred.size(0)
+    l1_loss = torch.sum(torch.abs(w))/pred.size(0)
+    return mse_loss + lamb * l1_loss  # 返回的是平均loss
 
 
 # 定义训练函数
@@ -56,23 +58,23 @@ def train(model: LinearModel, X_train: torch.Tensor, y_train: torch.Tensor, lamb
     y_train = load_tensor(y_train.reshape(-1), batchSize)
 
     for epoch in range(num_epochs):
-        total_loss=0
-        datasize=0
+        total_loss = 0
+        datasize = 0
         for i in range(len(X_train)):
 
             inputs = X_train[i]
             targets = y_train[i]
-            datasize+=targets.size(0)
+            datasize += targets.size(0)
             optimizer.zero_grad()
             outputs = model(inputs)
 
             loss = loss_f1(outputs, targets, model.linear.weight, lamb, device)
-            total_loss+=loss.item()*targets.size(0)
+            total_loss += loss.item()*targets.size(0)
             loss.backward()
             optimizer.step()
             schduler.step(loss)
 
-        if num_epochs>500 and (epoch+1) % 500 == 0:
+        if num_epochs > 500 and (epoch+1) % 500 == 0:
             print('LR: {}, Epoch [{}/{}], Loss: {:.4f}'.format(
                 learning_rate, epoch + 1, num_epochs, total_loss/datasize))
 
@@ -80,16 +82,16 @@ def train(model: LinearModel, X_train: torch.Tensor, y_train: torch.Tensor, lamb
 # 正则化参数通过交叉验证确定
 def decide_lambda_lr(z_d: torch.Tensor, c_z: torch.Tensor, n_splits: int, device: torch.device, random_seed: int = 42):  # z_d为probe的输入，c_z为标签数据
     kf = KFold(n_splits, shuffle=True, random_state=random_seed)
-    lamb_list = [1,10,100] # 网格化搜索之后发现lamb的影响很小，为节省时间干脆都定为10
+    lamb_list = [1, 10, 100]  # 网格化搜索之后发现lamb的影响很小，为节省时间干脆都定为10
     lr_list = [1e-06, 1e-07, 1e-08]
-    best_loss_lamb=float('inf')
+    best_loss_lamb = float('inf')
     best_lamb = None
-    best_lamb_lr= None
+    best_lamb_lr = None
 
-    for lamb in lamb_list: #决定了best_lamb及其下的best_loss和best_lr
+    for lamb in lamb_list:  # 决定了best_lamb及其下的best_loss和best_lr
         best_lr = None
         best_loss = float('inf')
-        for lr in lr_list: #决定了当前lamb下的best_loss和best_lr
+        for lr in lr_list:  # 决定了当前lamb下的best_loss和best_lr
             total_loss = 0
             for k, index in enumerate(kf.split(z_d)):
                 train_index, val_index = index
@@ -101,17 +103,18 @@ def decide_lambda_lr(z_d: torch.Tensor, c_z: torch.Tensor, n_splits: int, device
                 linear_model = linear_model.to(device)
                 # print(f'-------------The {k+1}/{n_splits} th training------------')
                 train(linear_model, X_train.reshape(-1, input_size),
-                    y_train.reshape(-1, 1), lamb, device, learning_rate=lr, num_epochs=500)
+                      y_train.reshape(-1, 1), lamb, device, learning_rate=lr, num_epochs=500)
 
                 # 验证
                 inputs = load_tensor(X_val)
                 targets = torch.tensor(y_val, device=device)
                 batch_output = linear_model(inputs[0])
-                for i in range(1,len(inputs)):
-                    batch_output = torch.cat([batch_output,linear_model(inputs[i])],dim=0)
+                for i in range(1, len(inputs)):
+                    batch_output = torch.cat(
+                        [batch_output, linear_model(inputs[i])], dim=0)
 
                 loss = loss_f1(batch_output, targets,
-                            linear_model.linear.weight, lamb, device)
+                               linear_model.linear.weight, lamb, device)
                 total_loss += loss.item()
 
             avg_loss = total_loss / n_splits
@@ -175,13 +178,13 @@ def test_accuracy(concept_name: str, model: LinearModel, test_data: pd.DataFrame
 
     # y_test = batch_normalize(y_test) # 该不该正则化？
 
-    test_zd=load_tensor(test_zd)
+    test_zd = load_tensor(test_zd)
     X_test = model(test_zd[0])
-    for i in range(1,len(test_zd)):
-        X_test=torch.cat([X_test,model(test_zd[i])],dim=0)
+    for i in range(1, len(test_zd)):
+        X_test = torch.cat([X_test, model(test_zd[i])], dim=0)
 
     r_squared = r2_score(np.array(y_test), np.array(X_test.tolist()))
-    r_squared_0=r2_score_0(np.array(y_test), np.array(X_test.tolist()))
+    r_squared_0 = r2_score_0(np.array(y_test), np.array(X_test.tolist()))
     print(f"r^2: {r_squared}, r^2_0: {r_squared_0}")
     print("---------------------------------------------------------------\n")
     return r_squared
@@ -200,7 +203,8 @@ def compute_results(device: torch.device, file_list, epoch_list, concept, layer_
             training_step, into_input_format_2(testset), device)
 
         for layer in range(layer_num):
-            print(f"---------NN training epoch: {training_step}, Layer num: {layer+1}/15---------")
+            print(
+                f"---------NN training epoch: {training_step}, Layer num: {layer+1}/15---------")
             linear_model = concept_probe(
                 concept, trainset, train_z_d_list[layer], device)
             accuracy = test_accuracy(
@@ -216,7 +220,7 @@ if __name__ == '__main__':
     globalDevice = detectDevice()
     BLACK = -1
 
-    file_list = range(2021,2024)  # range(1977,2024)
+    file_list = range(2021, 2023)  # range(1977,2024)
     epoch_list = range(1, 2)  # range(1,58)
     concept = score_f1
     # , mobility_diff , frontier, frontier_diff, steady, corner, corner_steady, steady_diff, corner_diff, score_f1, score]
