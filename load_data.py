@@ -147,6 +147,17 @@ def load_tensor(data: torch.Tensor, batchSize: int = 128):
         dataset.append(data[indice])
     return dataset
 
+def load_dataframe(data: pd.DataFrame, batchSize: int = 128):
+    dataset = []
+    nums = list(range(len(data)))
+    random.seed(10)
+    random.shuffle(nums)
+    indiceSet = [nums[i:i+batchSize]
+                 for i in range(0, len(data), batchSize)]
+    for indice in indiceSet:
+        dataset.append(data.iloc[indice,:])
+    return dataset
+
 
 if __name__ == '__main__':
     # 如果启用csv,则data_loader中第一行要用data = data_preprocess(data)

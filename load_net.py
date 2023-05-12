@@ -1,7 +1,7 @@
 import torch
 import sys
 from resnet import ResNet
-from load_data import data_preprocess, data_loader
+from load_data import data_preprocess, data_loader, load_dataframe
 import pandas as pd
 from player_color import BLACK, WHITE, EMPTY
 from gamemap import ReversiMap
@@ -23,15 +23,26 @@ def df_to_tensor(data: pd.DataFrame, device):
     return data
 
 
-def loadNetOutput(training_step: int, data: pd.DataFrame, device):
+def loadNetOutput(training_step: int, data: List[pd.DataFrame], device):
     with open(f"./models/preNet_{training_step}00.pt", 'rb') as f:
         model: "ResNet" = torch.load(f, map_location=device)
-    layer_out_list = []  # 储存一代神经网络中15个残差块的输出
-    layer_out = model.initConv(df_to_tensor(data,device))
-    for layer in model.layers:
-        layer_out = layer(layer_out)
-        layer_out_list.append(layer_out)
-    return layer_out_list
+    datalist=load_dataframe(data)
+    batch_list=[]
+    for data in datalist:
+        layer_out_list = []  # 储存一代神经网络中15个残差块的输出
+        layer_out = model.initConv(df_to_tensor(data,device))
+        for layer in model.layers:
+            layer_out = layer(layer_out)
+            layer_out_list.append(layer_out)
+        batch_list.append(layer_out_list)
+    trans_list=[[batch_list[k][i] for k in range(len(batch_list))] for i in range(len(model.layers))]
+    result=[]
+    for lst in trans_list:
+        new_lst=[]
+        for ls in lst:
+            new_lst.extend(ls)
+        result.append(new_lst)
+    return result
 
 
 if __name__ == '__main__':
