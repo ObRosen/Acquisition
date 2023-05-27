@@ -57,10 +57,10 @@
 **概念与激活数据集** 我们从完整ChessBase仓库中随机选取$10^5$局游戏，计算该数据集中每一个局面(原文position)的概念值以及AlphaZero激活值，然后从去重后的数据中随机采样中训练、验证、测试集。连续值概念使用$10^5$个不重复的局面(而非游戏)组成的训练集，以及另外$3\times 10^4$个不重复的局面组成的验证机和测试集。二分值概念平衡采样，使其正例和负例个数相同，这种采样原则使得可供训练的数据受到限制，鉴于有些概念很少出现。二分值概念的最小训练集大小为50363，最大为$10^5$。
 
 **探查人类概念** 我们通过一个简单的线性探查方法大规模地搜索人类概念；对于给定的概念$c$，我们从深度为$d$的神经网络激活中训练一个稀疏回归探针$g$，用以预测$c$的值。训练集由$10^5$个从ChessBase数据集中自然出现的棋盘局面组成，见Fig 1. 我们报告的分值(测试正确率)在一个独立的测试集中测量。通过比较不同的概念探针(既对AlphaZero自我对战循环中的不同训练步数比较，也对每一个网络中的不同层级比较)，我们可以提取出何时何地目标概念被网络习得。令$z^d=f^{1:d}(z^0)$表示第$d$层的残差块激活$z^d$为$z^0$的一个函数，更正式地，给定$f^{1:d}(z^0)$与一个概念$c(z^0)$，我们训练一个探针$g_w(z^d)$来使一个损失函数$L$最小化：$$w^*={{argmin}\atop {w}}L(g_w(f^{1:d}(z^0)),c(z^0))+\lambda|w|$$其中标量$\lambda\geq 0$为一个由交叉验证决定的$L_1$正则化参数，损失函数为平方误差损失：$$L(x,y)=(x-y)^2$$连续概念的探针采用线性回归$$g_w(z^d)=w^T[z^d,1]$$二分值概念的探针采用逻辑回归$$g_w(z^d)=\sigma(w^T[z^d,1])$$
-- 
-- *Fig 1:在一个测试集上平均后的逼近的质量($g(z^d)\approx c(z^0)$)即表明了一个神经网络层线性编码该人类概念的表现如何。对于一个给定的概念，此过程在每个神经网络的所有层级的(探针)训练过程中产生的一系列网络中重复。For a given concept, the process is repeated for the sequence of networks that are produced during training for all the layers in each network*
-- 
-- 在评估中，我们用正确类预测分数(the fraction of correct class prediction)来为二分值探针打分（经过标准化，使得50%正确率被设定为0分），其他探针用确定性系数$r^2$打分。
+
+*Fig 1:在一个测试集上平均后的逼近的质量($g(z^d)\approx c(z^0)$)即表明了一个神经网络层线性编码该人类概念的表现如何。对于一个给定的概念，此过程在每个神经网络的所有层级的(探针)训练过程中产生的一系列网络中重复。For a given concept, the process is repeated for the sequence of networks that are produced during training for all the layers in each network*
+
+在评估中，我们用正确类预测分数(the fraction of correct class prediction)来为二分值探针打分（经过标准化，使得50%正确率被设定为0分），其他探针用确定性系数$r^2$打分。
 
 
 ### 梳理思路
