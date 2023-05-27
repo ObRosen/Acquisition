@@ -1,6 +1,7 @@
 *.pt
 *.csv
 *.txt
+*.png
 test.py
 
 # Byte-compiled / optimized / DLL files

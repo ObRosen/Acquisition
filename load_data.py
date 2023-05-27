@@ -25,7 +25,7 @@ def data_preprocess(data: pd.DataFrame):
     return data
 
 
-def dedup(data: pd.DataFrame, memory_set: set = set()):  # dedup要对trainset用而不是对原始的data数据集用
+def dedup(data: pd.DataFrame, memory_set: set = set()):  
     memoryset = memory_set
     deduplicated_records = []
 
